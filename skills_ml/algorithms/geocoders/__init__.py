@@ -4,8 +4,13 @@ import logging
 import time
 import geocoder
 import boto
+from retrying import Retrying
 
 from skills_utils.s3 import split_s3_path
+
+
+def retry_if_io_error(exception):
+    return isinstance(exception, IOError)
 
 
 def job_posting_search_string(job_posting):
@@ -89,11 +94,16 @@ class S3CachedGeocoder(object):
             search_string (string) A search query to send to the geocoder
         Returns: (string) The geocoding result
         """
+        retrier = Retrying(
+            retry_on_exception=retry_if_io_error,
+            wait_exponential_multiplier=100,
+            wait_exponential_max=100000
+        )
         if not self.cache:
             self._load()
         if search_string not in self.cache:
             logging.info('%s not found in cache, geocoding', search_string)
-            self.cache[search_string] = self.geocode_func(search_string).json
+            self.cache[search_string] = retrier.call(self.geocode_func, search_string).json
             time.sleep(self.sleep_time)
         return self.cache[search_string]
 
