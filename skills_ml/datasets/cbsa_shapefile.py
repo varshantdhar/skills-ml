@@ -2,6 +2,7 @@ import requests
 import os
 import zipfile
 import filelock
+import logging
 
 DATASET_URL = 'http://www2.census.gov/geo/tiger/TIGER2015/CBSA/tl_2015_us_cbsa.zip'
 
@@ -24,7 +25,13 @@ def download_shapefile(cache_dir):
             with open(write_path, 'wb') as fd:
                 for chunk in response.iter_content(chunk_size=128):
                     fd.write(chunk)
-        zip_ref = zipfile.ZipFile(write_path, 'r')
-        zip_ref.extractall(cache_dir)
-        zip_ref.close()
-    return os.path.join(cache_dir, 'tl_2015_us_cbsa.shp')
+        extracted_shape_path = os.path.join(cache_dir, 'tl_2015_us_cbsa.shp')
+        if not os.path.isfile(extracted_shape_path):
+            zip_ref = zipfile.ZipFile(write_path, 'r')
+            zip_ref.extractall(cache_dir)
+            zip_ref.close()
+        logging.info(
+            'Returning filepath, currently at %s bytes',
+            os.path.getsize(extracted_shape_path)
+        )
+    return extracted_shape_path
