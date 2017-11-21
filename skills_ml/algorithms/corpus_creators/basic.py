@@ -115,7 +115,10 @@ class CorpusCreator(object):
 
     def __iter__(self):
         for line in self.generator:
-            document = json.loads(line)
+            if isinstance(line, dict):
+                document = line
+            elif isinstance(line, str):
+                document = json.loads(line)
             if self.filter:
                 document = self.filter(document)
                 if document:
