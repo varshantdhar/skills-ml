@@ -46,6 +46,21 @@ class SkillExtractor(object, metaclass=ABCMeta):
         """
         pass
 
+    @abstractmethod
+    def _candidate_skills(self, job_posting):
+        pass
+
+    def candidate_skills(self, job_posting):
+        for candidate_skill in self._candidate_skills(job_posting):
+            candidate_skill.source_type = '@JobPosting'
+            candidate_skill.source_id = job_posting.id
+            candidate_skill.source_properties = job_posting.properties
+            candidate_skill.key = job_posting.corpus_creator.document_schema_fields
+            candidate_skill.skill_extractor_name = self.name
+            if hasattr(self, 'skill_lookup_type'):
+                candidate_skill.skill_type = self.skill_lookup_type
+            else:
+                candidate_skill.skill_type = 'Unknown'
 
 class ListBasedSkillExtractor(SkillExtractor):
     """Extract skills by comparing with a known list

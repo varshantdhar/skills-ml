@@ -70,7 +70,7 @@ class ExactMatchSkillExtractor(ListBasedSkillExtractor):
             start_idx += offset
         return skills
 
-    def candidate_skills(self, job_posting):
+    def _candidate_skills(self, job_posting):
         document = job_posting.text
         sentences = self.ie_preprocess(document)
 
