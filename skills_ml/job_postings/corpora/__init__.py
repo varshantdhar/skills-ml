@@ -2,6 +2,7 @@ from random import randint
 from skills_ml.algorithms.string_cleaners import NLPTransforms
 from gensim.models.doc2vec import TaggedDocument
 from skills_utils.common import safe_get
+import re
 
 class CorpusCreator(object):
     """
@@ -173,6 +174,43 @@ class JobCategoryCorpusCreator(CorpusCreator):
             for field in self.document_schema_fields
         ])
 
+
+class SectionExtractCorpusCreator(CorpusCreator):
+    """Only return the contents of the configured section headers.
+
+    To work correctly, requires that the original newlines are present.
+    Don't bother using if the job postings have already been stripped of newlines.
+    """
+    def __init__(self, section_regex, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.section_regex = section_regex
+
+    def _transform(self, document):
+        lines_in_section = []
+        desclines = document['description'].split('\n')
+        prior_empty = False
+        heading = ''
+        for line in desclines:
+            words_in_line = len(line.split(' '))
+            if prior_empty and line.strip() and line[0] not in ['+', '*', '-'] and ((words_in_line > 0 and words_in_line < 4) or line.endswith(':')):
+                heading = line
+            if not line.strip():
+                prior_empty = True
+            else:
+                prior_empty = False
+            if re.match(self.section_regex, heading) and line != heading and len(line.strip()) > 0:
+                for bullet_char in ['+ ', '* ', '- ']:
+                    if line.startswith(bullet_char):
+                        line = line.replace(bullet_char, '')
+                lines_in_section.append(line)
+        return lines_in_section
+
+    def __iter__(self):
+        for document in self.job_posting_generator:
+            document = {key: document[key] for key in self.document_schema_fields}
+            sentences = self._transform(document)
+            for sentence in sentences:
+                yield sentence
 
 class RawCorpusCreator(CorpusCreator):
     """
