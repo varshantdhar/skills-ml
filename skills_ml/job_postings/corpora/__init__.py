@@ -175,7 +175,7 @@ class JobCategoryCorpusCreator(CorpusCreator):
         ])
 
 
-class SectionExtractCorpusCreator(CorpusCreator):
+class SectionExtractCorpusCreator(Doc2VecGensimCorpusCreator):
     """Only return the contents of the configured section headers.
 
     To work correctly, requires that the original newlines are present.
@@ -186,7 +186,7 @@ class SectionExtractCorpusCreator(CorpusCreator):
         self.section_regex = section_regex
 
     def _transform(self, document):
-        lines_in_section = []
+        words = []
         desclines = document['description'].split('\n')
         prior_empty = False
         heading = ''
@@ -202,15 +202,10 @@ class SectionExtractCorpusCreator(CorpusCreator):
                 for bullet_char in ['+ ', '* ', '- ']:
                     if line.startswith(bullet_char):
                         line = line.replace(bullet_char, '')
-                lines_in_section.append(line)
-        return lines_in_section
+                words.extend(line.split())
+        tag = [self.k]
+        return TaggedDocument(words, tag)
 
-    def __iter__(self):
-        for document in self.job_posting_generator:
-            document = {key: document[key] for key in self.document_schema_fields}
-            sentences = self._transform(document)
-            for sentence in sentences:
-                yield sentence
 
 class RawCorpusCreator(CorpusCreator):
     """
